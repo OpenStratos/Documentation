@@ -1,13 +1,11 @@
-# Protocolos de Actualización #
+# Update protocols #
 
-Protocolos de actuación
+Operating system scheduled updates
 
-Actualizaciones del sistema
+* The operating system will not be updated starting two weeks before launch
 
-* No se actualizará el SO desde 2 semanas antes al lanzamiento.
+* No new software features will be added starting two weeks before launch
 
-* No se incluirán nuevas características al software desde 2 semanas antes al lanzamiento.
+* A unit-testing test must be passed before accepting new software.
 
-* Se deberá esperar a una prueba de unit-testing completa para aceptar el nuevo software.
-
-* No se cambiará el software interno desde 5 días antes del lanzamiento.
+* Internal software will not be changed starting five days before launch
