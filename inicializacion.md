@@ -1,40 +1,41 @@
 
 ##Inicializacion##
-Aquí se pretende explicar la inicialización de OpenStratos.
+This document explains the OpenStratos initialization protocol.
 
-1. Encendido de la Raspberry Pi A+
-2. Root ejecuta la configuración de GPIO
-3. OpenStratos arranca, y se queda a la espera del mensaje de que Root ha configurado correctamente la hora del SO.
-4. Root comprueba el proceso de OpenStratos y le asigna la prioridad máxima.
-5. Root arranca el GPS y se queda a la espera de una correcta configuración de la hora. Cuando la reciba, configura la fecha del sistema y el reloj de hardware a esa hora, y enviará el mensaje a OpenStratos. Mientras se inicializa, se harán sleeps de 10 segundos.
-6. Root se pone en modo Failback, tendrá sleeps de 30 segundos, tras los que comprobará que OpenStratos está en funcionamiento, mediante el envío de mensajes. Si todo está correcto, hará un nuevo sleep. Si algo falla, recuperará el control de la sonda, y se pondrá en modo seguro (al final del documento).
-7. OpenStratos comprueba todos los componentes en paralelo:
-	7.1.Comprobación de la capacidad de escritura de ficheros.
+1. The Raspberry Pi A+ flight computer is turned on.
+2. Root executes GPIO initialization program.
+3. OpenStratos starts and waits for root to acknowledge that the OS time was properly configured.
+4. Root tests the OpenStratos process and gives it maximum priority.
+5. Root starts the GPS module and waits for the time to be received via GPS. When the time is received, system time and hardware clock are set and OpenStratos is acknowledged. While initialization is not complete, the process will sleep for periods of ten seconds.
+6. Root enters Failback mode. In said mode, root will sleep for 30 seconds and then send a query message to the OpenStratos process to check that is working correctly. If everything is working correctly, root will sleep again (step 6). If something is wrong root will regain control of the balloon and enter failsafe mode (see end of the document).
+7. OpenStratos tests all the components in parallel:
+	7.1.Test ability to read and write files 
 
- 	7.2. Comprobación de xBee:
+ 	7.2. xBee tests:
  
-	- Comprobar conexión con xBee
+	- Test xBee connection
+
+	- Send SYN. If an ACK is received within 10 seconds, the test is passed. If not, the thread stays blocked and waits for the client.
    
-	- Enviar SYN. Si se recibe ACK en menos de 10 segundos, pasa el test, si no el hilo queda bloqueado a la espera del cliente
- 
-	7.3 Comprobación del GPS: Mientras el GPS no esté inicializado, se espera 15 segundos. Una vez se detecte la inicialización, se esperarán 15 segundos más, y se comprobará la fecha y hora del sistema, la posición, altura y estabilidad de la sonda. (Cuidado con los sleeps al cambiar la hora)
+	7.3 GPS test: While the GPS module is not initialized, wait in periods of 15 seconds. When initialization is detected, wait for 15 more seconds and check system time, position, altitude and stability. (need to be careful with sleep calls after system time is changed)
 
-	7.4 Comprobación del sistema GSM
+	7.4 GSM module test 
+
+	7.5 Battery charge test
+
+	7.6 Camera test: A short recording will be made and a single picture will be taken. The correctness of the write operation will be tested and the new files will be deleted. 
  	
-	7.5 Comprobación de la carga de todas las baterías.
- 	
-	7.6. Comprobación de la cámara. Se hará una pequeña grabación con una foto entre medias, se comprobará que los ficheros han sido escritos, y se borrarán.
- 	
-	7.7 Comprobación de los sensores de temperatura.
+	7.7 Temperature sensors test
 
-8. A la espera de los 7 threads, cuando todos los tests acaban se continúa con la inicialización. A partir de aquí, se enviará por cada paso un mensaje al cliente. Comenzando por un “INITIALISED”.
+8. When all seven threads finish, continue initializating. From now on, a message will be sent to the client each time a step is completed, starting with INITIALISED.
 
-9. Se envía el status report al cliente, y se espera al ACK.
+9. Send status report to the client and wait for ACK
 
-10. Si todo es correcto, comienza el programa principal.
+10. If everything is OK, execute main program.
 
-##Modo seguro##
+##Failsafe mode##
 
-Cuando una de las Raspberry Pi entre en modo seguro, su único objetivo será la recuperación de la sonda, sin importar nada más. Comprobará el estado de la otra Raspberry Pi. Si es correcto, se pondrá en modo seguro a la espera, que es un estado en el que comprobará cada cierto tiempo si la otra Raspberry Pi sigue correctamente. No obstante, avisará a esta de que se encuentra en modo seguro. Si el proceso de OpenStratos sigue vivo, se le matará. En el caso de existir la posibilidad de abortar la misión y de aterrizar, aterrizará.
+When one of the Raspberry Pi computers enters failsafe mode, its only goal will be the recovery of the OpenStratos probe. It will probe the other Raspberry Pi for its status, and if everything is correct, it will enter waiting failsafe mode (where it will check whether the other flight computer is working correctly every defined period of time and acknowledge that it has entered failsafe mode). If the OpenStratos process is still running, it will be killed. If the mission can be aborted by triggering landing, so will happen.
 
-Enviará tanto por xBee como por GSM, si se está por debajo de los 3km de altura (aunque fallen), en todo momento los datos del GPS (solo posición y altura), con sleeps de 10 segundos. Una vez haya aterrizado, se pondrá en modo ahorro de energía. Se apagarán todos los componentes no necesarios. El GPS se activará una vez cada 1h para comprobar si se ha cambiado la posición. Se enviará cada 5 minutos, tanto por GSM como por xBee la posición actual de la sonda.
+The GPS position of the probe will be transmitted via xBee and GSM (if height is below 3km) even if the modules are failing.
+N. de T.: Original: Enviará tanto por xBee como por GSM, si se está por debajo de los 3km de altura (aunque fallen), en todo momento los datos del GPS (solo posición y altura), con sleeps de 10 segundos. Una vez haya aterrizado, se pondrá en modo ahorro de energía. Se apagarán todos los componentes no necesarios. El GPS se activará una vez cada 1h para comprobar si se ha cambiado la posición. Se enviará cada 5 minutos, tanto por GSM como por xBee la posición actual de la sonda.
